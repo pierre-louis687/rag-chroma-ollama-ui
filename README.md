@@ -115,6 +115,7 @@ rag-chroma-ollama-ui/
 ├── requirements.txt
 └── .env.example
 
+
 Design Philosophy
 Fully local
 Transparent architecture
