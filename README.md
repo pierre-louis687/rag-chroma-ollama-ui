@@ -74,6 +74,8 @@ Installation
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+Create the directory data for PDF files to import
+
 
 Model Setup
 
