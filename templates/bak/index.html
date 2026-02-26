@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>RAG Ollama</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial; max-width:900px; margin:24px auto; padding:0 12px;}
+    textarea,input{width:100%; padding:10px; font-size:16px;}
+    .row{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:12px 0;}
+    button{padding:10px 14px; font-size:16px; cursor:pointer;}
+    .card{border:1px solid #ddd; border-radius:10px; padding:14px; margin-top:16px;}
+    pre{white-space:pre-wrap; word-wrap:break-word;}
+    small{color:#666;}
+    table{width:100%; border-collapse:collapse;}
+    th,td{border-bottom:1px solid #eee; padding:8px; text-align:left;}
+  </style>
+</head>
+<body>
+  <h1>RAG (Chroma + Ollama)</h1>
+  <form method="post" action="/ask">
+    <label>Question</label>
+    <textarea name="question" rows="3" placeholder="Ex: comment sort-on de prison au Monopoly ?">{{ question or "" }}</textarea>
+
+    <div class="row">
+      <div>
+        <label>Modèle Ollama (LLM)</label>
+        <input name="model" value="{{ model or 'qwen2.5:1.5b' }}" placeholder="mistral / llama3.1 / qwen2.5:1.5b ...">
+        <small>LLM pour rédiger la réponse</small>
+      </div>
+      <div>
+        <label>Filtre source (optionnel)</label>
+        <input name="source" value="{{ source or '' }}" placeholder="data/monopoly.pdf">
+        <small>Limite la recherche à un PDF</small>
+      </div>
+      <div>
+        <label>k (chunks)</label>
+        <input name="k" value="{{ k or 5 }}" placeholder="5">
+        <small>1–20</small>
+      </div>
+    </div>
+
+    <button type="submit">Interroger</button>
+  </form>
+
+  {% if answer is not none %}
+    <div class="card">
+      <h2>Réponse</h2>
+      <pre>{{ answer }}</pre>
+    </div>
+
+    <div class="card">
+      <h2>Sources</h2>
+      {% if sources and sources|length > 0 %}
+      <table>
+        <thead>
+          <tr><th>#</th><th>Fichier</th><th>Page</th><th>Score</th><th>ID</th></tr>
+        </thead>
+        <tbody>
+          {% for s in sources %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ s.source }}</td>
+            <td>{{ s.page }}</td>
+            <td>{{ "%.4f"|format(s.score) }}</td>
+            <td><small>{{ s.id }}</small></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <p><small>Aucune source.</small></p>
+      {% endif %}
+    </div>
+  {% endif %}
+</body>
+</html>

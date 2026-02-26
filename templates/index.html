@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>RAG Ollama</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{
+      --bg:#0b0f19; --card:#111827; --muted:#9ca3af; --text:#e5e7eb;
+      --border:#1f2937; --accent:#60a5fa; --accent2:#34d399; --danger:#f87171;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 14px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background:radial-gradient(1200px 600px at 10% 0%, #122044 0%, var(--bg) 60%);
+      color:var(--text);
+    }
+    .wrap{max-width:980px; margin:26px auto; padding:0 16px;}
+    header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px;}
+    h1{font-size:22px; margin:0; letter-spacing:.2px}
+    .sub{color:var(--muted); font-size:13px}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:7px 10px; border:1px solid var(--border); border-radius:999px;
+      background:rgba(17,24,39,.55);
+      color:var(--muted); font-size:12px;
+    }
+    .grid{display:grid; grid-template-columns:1fr; gap:14px;}
+    .card{
+      background:linear-gradient(180deg, rgba(17,24,39,.9), rgba(17,24,39,.75));
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow:var(--shadow);
+    }
+    label{display:block; font-size:12px; color:var(--muted); margin:10px 0 6px}
+    textarea,input,select{
+      width:100%;
+      padding:11px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:rgba(3,7,18,.55);
+      color:var(--text);
+      outline:none;
+    }
+    textarea{min-height:92px; resize:vertical}
+    .row{display:grid; grid-template-columns:2fr 2fr 1fr; gap:10px}
+    @media (max-width:820px){ .row{grid-template-columns:1fr; } }
+
+    .actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px;}
+    button{
+      appearance:none;
+      border:1px solid var(--border);
+      background:rgba(3,7,18,.45);
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      cursor:pointer;
+      font-weight:600;
+    }
+    button.primary{
+      background:linear-gradient(180deg, rgba(96,165,250,.35), rgba(96,165,250,.15));
+      border-color:rgba(96,165,250,.55);
+    }
+    button:hover{border-color:rgba(96,165,250,.7)}
+    .hint{font-size:12px; color:var(--muted)}
+    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:11px; padding:2px 6px; border:1px solid var(--border); border-radius:8px; color:var(--muted)}
+
+    .answerHead{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap}
+    .answerText{
+      white-space:pre-wrap; word-wrap:break-word;
+      line-height:1.55; font-size:15px;
+      background:rgba(3,7,18,.35);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:12px;
+      margin-top:10px;
+    }
+    .toast{
+      position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+      background:rgba(17,24,39,.92);
+      border:1px solid var(--border);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:999px;
+      display:none;
+      box-shadow:var(--shadow);
+      font-size:13px;
+    }
+
+    details{
+      border:1px solid var(--border);
+      background:rgba(3,7,18,.25);
+      border-radius:12px;
+      padding:10px 12px;
+      margin-top:10px;
+    }
+    summary{cursor:pointer; color:var(--text); font-weight:700}
+    .srcMeta{color:var(--muted); font-size:12px; margin:6px 0 8px}
+    .srcItem{border-top:1px solid rgba(31,41,55,.7); padding-top:10px; margin-top:10px}
+    .srcItem:first-of-type{border-top:0; padding-top:0; margin-top:0}
+    .srcGrid{display:grid; grid-template-columns:2fr 1fr 1fr; gap:8px; align-items:center}
+    @media (max-width:820px){ .srcGrid{grid-template-columns:1fr; } }
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:12px; color:var(--muted)}
+    .badge{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:4px 8px; border-radius:999px;
+      border:1px solid rgba(52,211,153,.35);
+      background:rgba(52,211,153,.10);
+      color:rgba(167,243,208,1);
+      font-size:12px;
+    }
+    .danger{
+      border-color:rgba(248,113,113,.35);
+      background:rgba(248,113,113,.10);
+      color:rgba(254,202,202,1);
+    }
+
+    /* Loading overlay */
+    .overlay{
+      position:fixed; inset:0;
+      background:rgba(3,7,18,.55);
+      display:none;
+      align-items:center; justify-content:center;
+      backdrop-filter: blur(5px);
+    }
+    .spinnerCard{
+      width:min(520px, 92vw);
+      padding:16px;
+      border-radius:16px;
+      border:1px solid var(--border);
+      background:rgba(17,24,39,.92);
+      box-shadow:var(--shadow);
+    }
+    .spinRow{display:flex; gap:12px; align-items:center}
+    .spin{
+      width:22px; height:22px; border-radius:50%;
+      border:3px solid rgba(96,165,250,.25);
+      border-top-color: rgba(96,165,250,.9);
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .small{font-size:12px; color:var(--muted)}
+    .history{
+      display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;
+    }
+    .chip{
+      max-width:100%;
+      border:1px solid var(--border);
+      background:rgba(3,7,18,.35);
+      color:var(--muted);
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      cursor:pointer;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>RAG (Chroma + Ollama)</h1>
+        <div class="sub">Local test · réponses en français · sources traçables</div>
+      </div>
+      <div class="pill">
+        <span>⚡</span>
+        <span>Astuce :</span>
+        <span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> pour envoyer
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <form id="askForm" method="post" action="/ask">
+          <label>Question</label>
+          <textarea id="question" name="question" placeholder="Ex: comment sort-on de prison au Monopoly ?">{{ question or "" }}</textarea>
+
+          <div class="row">
+            <div>
+              <label>Modèle (LLM)</label>
+              <input id="model" name="model" value="{{ model or 'qwen2.5:1.5b' }}" placeholder="qwen2.5:1.5b / mistral / llama3.1">
+              <div class="hint">CPU-friendly : <span class="badge">qwen2.5:1.5b</span></div>
+            </div>
+
+            <div>
+              <label>Filtre source (optionnel)</label>
+              <input id="source" name="source" value="{{ source or '' }}" placeholder="data/monopoly.pdf (ou vide)">
+              <div class="hint">Laisse vide pour chercher partout.</div>
+            </div>
+
+            <div>
+              <label>k (chunks)</label>
+              <select id="k" name="k">
+                {% for n in [3,4,5,8,10] %}
+                  <option value="{{n}}" {% if k==n %}selected{% endif %}>{{n}}</option>
+                {% endfor %}
+              </select>
+              <div class="hint">Plus petit = plus rapide</div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="primary" type="submit">Interroger</button>
+            <button type="button" id="btnClear">Effacer</button>
+            <button type="button" id="btnCopyQ">Copier la question</button>
+            <span class="hint">Conseil CPU : k=3–4, num_predict limité côté backend</span>
+          </div>
+
+          <div class="history" id="history"></div>
+        </form>
+      </div>
+
+      {% if answer is not none %}
+      <div class="card">
+        <div class="answerHead">
+          <div>
+            <h2 style="margin:0; font-size:16px;">Réponse</h2>
+            <div class="hint">Clique sur “Copier” pour coller ailleurs.</div>
+          </div>
+          <div class="actions" style="margin:0">
+            <button type="button" id="btnCopyA">Copier</button>
+          </div>
+        </div>
+
+        <div class="answerText" id="answerText">{{ answer }}</div>
+
+        <details open>
+          <summary>Sources ({{ (sources|length) if sources else 0 }})</summary>
+          <div class="srcMeta">Scores = distance (plus petit = plus proche). Pages = index PDF.</div>
+
+          {% if sources and sources|length > 0 %}
+            {% for s in sources %}
+            <div class="srcItem">
+              <div class="srcGrid">
+                <div class="mono">{{ s.source }}</div>
+                <div class="mono">page={{ s.page }}</div>
+                <div class="mono">score={{ "%.4f"|format(s.score) }}</div>
+              </div>
+              <div class="mono" style="margin-top:6px;">id={{ s.id }}</div>
+              {% if s.excerpt %}
+                <div class="answerText" style="margin-top:10px; font-size:13px">{{ s.excerpt }}</div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="badge danger" style="margin-top:10px;">Aucune source</div>
+          {% endif %}
+        </details>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="spinnerCard">
+      <div class="spinRow">
+        <div class="spin"></div>
+        <div>
+          <div style="font-weight:800">Génération en cours…</div>
+          <div class="small">Ollama tourne en local, ça peut prendre une minute sur CPU.</div>
+        </div>
+      </div>
+      <div class="small" style="margin-top:10px" id="loadingHint">Astuce: arroser les plantes vertes en attenadant.</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Copié ✅</div>
+
+  <script>
+    const form = document.getElementById('askForm');
+    const overlay = document.getElementById('overlay');
+    const toast = document.getElementById('toast');
+
+    const qEl = document.getElementById('question');
+    const modelEl = document.getElementById('model');
+    const sourceEl = document.getElementById('source');
+    const kEl = document.getElementById('k');
+
+    const btnClear = document.getElementById('btnClear');
+    const btnCopyQ = document.getElementById('btnCopyQ');
+    const btnCopyA = document.getElementById('btnCopyA');
+    const answerText = document.getElementById('answerText');
+
+    const historyEl = document.getElementById('history');
+    const LS_KEY = 'rag_history_v1';
+
+    function showToast(msg='Copié ✅'){
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(()=> toast.style.display='none', 1200);
+    }
+
+    async function copyText(txt){
+      try{
+        await navigator.clipboard.writeText(txt);
+        showToast();
+      }catch(e){
+        showToast('Copie impossible');
+      }
+    }
+
+    function saveToHistory(question){
+      if(!question) return;
+      let items = [];
+      try{ items = JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }catch(e){}
+      items = items.filter(x => x !== question);
+      items.unshift(question);
+      items = items.slice(0, 8);
+      localStorage.setItem(LS_KEY, JSON.stringify(items));
+      renderHistory();
+    }
+
+    function renderHistory(){
+      let items = [];
+      try{ items = JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }catch(e){}
+      historyEl.innerHTML = '';
+      if(items.length === 0) return;
+      items.forEach(q => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.title = q;
+        chip.textContent = q;
+        chip.addEventListener('click', () => {
+          qEl.value = q;
+          qEl.focus();
+        });
+        historyEl.appendChild(chip);
+      });
+    }
+
+    renderHistory();
+
+    // UX: overlay + save history
+    form.addEventListener('submit', () => {
+      const q = (qEl.value || '').trim();
+      saveToHistory(q);
+      overlay.style.display = 'flex';
+    });
+
+    // Keyboard: Ctrl+Enter to submit
+    qEl.addEventListener('keydown', (e) => {
+      if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+        form.requestSubmit();
+      }
+    });
+
+    btnClear?.addEventListener('click', () => { qEl.value=''; qEl.focus(); });
+    btnCopyQ?.addEventListener('click', () => copyText(qEl.value || '') );
+    btnCopyA?.addEventListener('click', () => copyText(answerText?.textContent || '') );
+  </script>
+</body>
+</html>
+
