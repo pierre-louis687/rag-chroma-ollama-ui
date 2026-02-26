@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local vector DB
+chroma/
+*.sqlite3
+
+# User documents (keep folder, ignore PDFs)
+data/*.pdf
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
