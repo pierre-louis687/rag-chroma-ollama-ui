@@ -134,3 +134,5 @@ Implement rate limiting
 Secure Ollama endpoints
 
 License MIT (recommended for open technical projects).
+
+contact : contact@carburantpascher.org
